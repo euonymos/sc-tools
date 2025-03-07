@@ -2,7 +2,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 -- | Working with fully resolved transactions
@@ -154,7 +153,14 @@ valueLabel :: (C.IsMaryBasedEra era) => C.TxOut ctx era -> A.RecordField
 valueLabel =
   let renderAsset C.AdaAssetId (C.Quantity n) = adaLabel n
       renderAsset (C.AssetId C.PolicyId{C.unPolicyId} (C.AssetName assetName)) (C.Quantity n) =
-        let lbl = shortenHash56 (Text.pack $ filter ((/=) '"') $ show unPolicyId) <> "." <> Text.decodeUtf8 (Base16.encode assetName)
+        let lbl =
+              shortenHash56
+                ( Text.pack $
+                    filter ((/=) '"') $
+                      show unPolicyId
+                )
+                <> "."
+                <> (shortenTokenName . Text.decodeUtf8 . Base16.encode) assetName
          in lbl <> ": " <> Text.pack (show n)
       renderValue = Text.unlines . fmap (uncurry renderAsset) . toList
    in A.FieldLabel . TL.fromStrict . renderValue . view (_TxOut . _2 . _TxOutValue)
@@ -177,6 +183,8 @@ four characters
 shortenHash56 :: Text -> Text
 shortenHash56 t = Text.take 4 t <> "..." <> Text.drop 52 t
 
+shortenTokenName :: Text -> Text
+shortenTokenName t = Text.take 10 t <> "..."
 instance GVT.PrintDot FullTxInput where
   unqtDot = \case
     RefInput txI -> mkTxInLabel txI
@@ -259,7 +267,7 @@ addTxBody transaction = do
   let labels =
         [ A.FieldLabel "Transaction"
         , A.FieldLabel $ "Fee: " <> TL.fromStrict (adaLabel n)
-        , A.FieldLabel $ TL.fromStrict $ C.serialiseToRawBytesHexText i
+        , A.FieldLabel $ TL.fromStrict $ shortenHash $ C.serialiseToRawBytesHexText i
         ]
           <> fmap withdrawalLabel withdrawals
   lift $ GV.node (FullTxBody i) [A.Label $ A.RecordLabel labels]

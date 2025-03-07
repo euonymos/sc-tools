@@ -54,11 +54,13 @@ library
     , aeson
     , aeson-pretty
     , base                    >=4.14.0
+    , base16-bytestring
     , Blammo
     , blockfrost-api
     , blockfrost-client-core
     , bytestring
     , cardano-api
+    , containers
     , convex-base
     , convex-blockfrost
     , lens

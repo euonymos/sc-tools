@@ -32,9 +32,11 @@ data TxModCommand
     Download TxId (Maybe FilePath)
   | -- | visualise the transaction
     Graph [ResolvedTxInput] (Maybe FilePath)
+  | -- | load local file with a bunch of transaction on visualize them
+    Bulk FilePath (Maybe FilePath)
 
 parseCommand :: Parser TxModCommand
-parseCommand = subparser $ mconcat [parseDownload, parseGraph]
+parseCommand = subparser $ mconcat [parseDownload, parseGraph, parseBulk]
 
 parseDownload :: Mod CommandFields TxModCommand
 parseDownload =
@@ -45,6 +47,11 @@ parseGraph :: Mod CommandFields TxModCommand
 parseGraph =
   command "graph" $
     info (Graph <$> many parseResolvedTxInput <*> optional parseGraphOutFile) (fullDesc <> progDesc "Generate a dot graph (graphviz) from a fully resolved transaction")
+
+parseBulk :: Mod CommandFields TxModCommand
+parseBulk =
+  command "bulk" $
+    info (Bulk <$> parseTxDumpFile <*> optional parseGraphOutFile) (fullDesc <> progDesc "Load a bunch of txs from file and visualize them")
 
 parseTxId :: Parser TxId
 parseTxId =
@@ -57,6 +64,9 @@ parseTxOutFile = strOption (long "out.file" <> short 'o' <> help "File to write 
 
 parseTxInFile :: Parser FilePath
 parseTxInFile = strOption (long "in.file" <> short 'f' <> help "JSON file with the fully resolved transaction")
+
+parseTxDumpFile :: Parser FilePath
+parseTxDumpFile = strOption (long "txs.out" <> short 'f' <> help "Txs dump file: each line is serilized CBOR, no trailing \\n")
 
 parseGraphOutFile :: Parser FilePath
 parseGraphOutFile = strOption (long "out.file" <> short 'o' <> help "File to write the dot graph to")
